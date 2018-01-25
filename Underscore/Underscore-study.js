@@ -1,1 +1,1 @@
-console.log("源码学习");
+console.log('开始看源码咯~');
