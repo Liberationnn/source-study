@@ -126,31 +126,29 @@
     return cb(value, context, Infinity);
   };
 
+  // 创建一个内部函数分配器功能
   // 有三个方法用到了这个内部函数
   // _.extend & _.extendOwn & _.defaults
   // _.extend = createAssigner(_.allKeys);
   // _.extendOwn = _.assign = createAssigner(_.keys);
   // _.defaults = createAssigner(_.allKeys, true);
-  // 创建一个内部函数分配器功能
   let createAssigner = function(keysFunc, undefinedOnly) {
     // 返回函数
     // 经典闭包 (undefinedOnly 参数在返回的函数中被引用)
     // 返回的函数参数个数 >= 1
-    // 将第二个开始的对象参数的键值对 "继承" 给第一个参数
+    // 从第二个参数对象开始，将自身的键值对赋值给第一个参数对象
     return function(obj) {
       let length = arguments.length;
-      // 如果只传入了一个或没有传入参数或传入的第一个参数是 null
-      // 则直接返回传入的参数
+      // 如果只传入了一个或没有传入参数或传入的第一个参数是 null，则直接返回传入的参数
       if (length < 2 || obj == null) return obj;
 
-      // 枚举第一个参数以外的对象参数
-      // 即 arguments[1], arguments[2] ...
+      // 枚举第一个参数以外的参数对象，即 arguments[1], arguments[2] ...
       for (let index = 1; index < length; index++) {
         let
-          // source 即为对象参数
+          // source 即为参数对象
           source = arguments[index],
-          // 提取对象参数的 keys 值，keys 值是数组，为 source 的键名集合
-          // keysFunc 参数表示 _.keys 或者 _.allKeys
+          // keysFunc 参数为一个方法，表示 _.keys 或者 _.allKeys
+          // 使用 keysFunc() 方法提取参数对象的 keys 值，keys 值是数组，为 source 的键名集合
           keys = keysFunc(source),
           // l 值为 keys 数组中元素的数量
           l = keys.length;
@@ -175,7 +173,6 @@
         }
       }
 
-      // 返回已经继承后面对象参数属性的第一个参数对象
       return obj;
     };
   };
@@ -378,4 +375,31 @@
     }
     return result;
   }
+
+  // 将对象的所有 value 值类型为 function 的 key 值存入一个数组，并将该数组排序后返回
+  _.functions = _.methods = function(obj) {
+    // 返回的数组
+    let names = [];
+
+    for (let key in obj) {
+      // 如果 key 对应的 value 值类型为 function，则将该 key 值存入数组
+      if (_.isFunction(obj[key])) {
+        names.push(key);
+      }
+    }
+
+    // 返回排序后的数组
+    return names.sort();
+  };
+
+  // 将传入的几个对象 (从第二个参数对象开始) 中的所有键值对扩展到目标对象 (即第一个参数对象) 上
+  // 由于 key 值可能会相同，所以后面的对象的键值对可能会覆盖前面的同名键值对
+  _.extend = createAssigner(_.allKeys);
+
+  // 将传入的几个对象 (从第二个参数对象开始) 中所有的 own properties 的键值对扩展到目标对象 (即第一个参数对象) 上
+  // 由于 key 值可能会相同，所以后面的对象的键值对可能会覆盖前面的同名键值对
+  _.extendOwn = _.assign = createAssigner(_.keys);
+
+  // 
+  _.findKey =
 }.call(this));
