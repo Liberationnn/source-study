@@ -651,7 +651,76 @@
 
     // 如果对象的键值对数量为 0，则为空对象
     return _.keys(obj).length === 0;
-  }；
+  };
 
-  
+  // 判断对象是否是 DOM 元素
+  _.isElement = function(obj) {
+    // 如果 obj 存在且 obj 的节点类型为 1 (即 Element)，则为 DOM 元素
+    return !!(obj && obj.nodeType === 1);
+  };
+
+  // 判断是否是数组
+  _.isArray = nativeIsArray || function(obj) {
+    return toString.call(obj) === '[object Array]';
+  };
+
+  // 判断是否是对象
+  _.isObject = function(obj) {
+    let type = typeof obj;
+    // 将 function 和 object 判断为对象，null 不是对象
+    return type === 'function' || type === 'object' && !!obj;
+  };
+
+  // 添加一些判断类型的方法
+  _.each(['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp', 'Error'], function(name) {
+    _['is' + name] = function(obj) {
+      return toString.call(obj) === '[object ' + name + ']';
+    };
+  });
+
+  // 兼容 IE < 9 下的 _.isArguments() 方法
+  if (!_.isArguments(arguments)) {
+    _.isArguments = function(obj) {
+      // 通过判断 obj 参数对象中是否含有 callee 属性来做兼容
+      return _.has(obj, 'callee');
+    };
+  }
+
+  // 优化 _.isFunction()功能
+  // 使其能在 old v8、IE 11、Safari 8 工作
+  if (typeof /./ != 'function' && typeof Int8Array != 'object') {
+    _.isFunction = function(obj) {
+      return typeof obj == 'function' || false;
+    };
+  }
+
+  // 判断给定对象是否是有限的 (比全局 isFinite() 更健壮)
+  _.isFinite = function(obj) {
+    return isFinite(obj) && !isNaN(parseFloat(obj));
+  };
+
+  // 判断是否为 NaN
+  _.isNaN = function(obj) {
+    return _.isNumber(obj) && obj !== +obj;
+  };
+
+  // 判断是否是布尔值
+  _.isBoolean = function(obj) {
+    return obj === true || obj === false || toString.call(obj) === '[object Boolean]';
+  };
+
+  // 判断是否是 null
+  _.isNull = function(obj) {
+    return obj === null;
+  };
+
+  // 判断是否是 undefined
+  _.isUndefined = function(obj) {
+    return obj === void 0;
+  };
+
+  // 判断给定对象的 own properties 中是否含有给定属性
+  _.has = function(obj, key) {
+    return obj != null && hasOwnProperty.call(obj, key);
+  };
 }.call(this));
