@@ -642,10 +642,16 @@
     return eq(a, b);
   };
 
-  // 判断数组、类数组、字符串对象是否为空
+  // 判断数组、字符串、类数组对象是否为空
   _.isEmpty = function(obj) {
     if (obj == null) return true;
+
+    // 如果数组、字符串、类数组的 length 属性值为0，则为空对象
     if (_.isArrayLike(obj) && (_.isArray(obj) || _.isString(obj) || _.isArguments(obj))) return obj.length === 0;
-    
-  }
+
+    // 如果对象的键值对数量为 0，则为空对象
+    return _.keys(obj).length === 0;
+  }；
+
+  
 }.call(this));
