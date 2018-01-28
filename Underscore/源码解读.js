@@ -611,7 +611,7 @@
       // 深度比较内容，忽略非数字属性
       while (length--) {
         // 递归
-        if (!eq(a[length], b[length], aStack, bStacl)) return false;
+        if (!eq(a[length], b[length], aStack, bStack)) return false;
       }
     } else {
       // 如果 a 不是数组，即 a 为对象
@@ -642,5 +642,10 @@
     return eq(a, b);
   };
 
+  // 判断数组、类数组、字符串对象是否为空
+  _.isEmpty = function(obj) {
+    if (obj == null) return true;
+    if (_.isArrayLike(obj) && (_.isArray(obj) || _.isString(obj) || _.isArguments(obj))) return obj.length === 0;
 
+  }
 }.call(this));
