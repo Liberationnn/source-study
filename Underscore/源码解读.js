@@ -20,7 +20,8 @@
   // ****************************** base部分源码解读 ****************************** //
   // ****************************** base部分源码解读 ****************************** //
 
-  // 基本设置、配置
+  // Baseline setup
+
   // 将this赋值给局部变量 root
   // root 的值，客户端为 'window' ，服务端 (node) 为 'exports'
   let root = this;
@@ -226,12 +227,11 @@
 
 
 
-  // ****************************** object部分源码解读 ****************************** //
-  // ****************************** object部分源码解读 ****************************** //
-  // ****************************** object部分源码解读 ****************************** //
+  // ***************************** object部分源码解读 ***************************** //
+  // ***************************** object部分源码解读 ***************************** //
+  // ***************************** object部分源码解读 ***************************** //
 
   // OBJECT FUNCTIONS
-  // 对象的扩展方法，一共有 38 个
 
   // IE < 9 下不能用 'for in' 的方法来枚举对象的某些 key
   // 比如重写了对象的 'toString' 方法，这个 key 值就不能在 IE < 9 下用 'for in' 枚举到
@@ -723,4 +723,137 @@
   _.has = function(obj, key) {
     return obj != null && hasOwnProperty.call(obj, key);
   };
+
+
+
+  // ***************************** array部分源码解读 ****************************** //
+  // ***************************** array部分源码解读 ****************************** //
+  // ***************************** array部分源码解读 ****************************** //
+
+  // ARRAY FUNCTIONS
+
+  // 返回 array 的第一个元素
+  // 如果传递了 n 参数，则返回由数组中的前 n 个元素组成的数组
+  _.first = _.head = _.take = function(array, n, guard) {
+    if (array == null) return void 0;
+    if (n == null || guard) return array[0];
+    return _.initial(array, array.length - n);
+  };
+
+  // 返回 array 中除了最后一个元素外的其他全部元素组成的数组
+  // 如果传递了 n 参数，则返回由排除了数组后面的 n 个元素后的其他全部元素组成的数组
+  _.initial = function(array, n, guard) {
+    return slice.call(array, 0, Math.max(0, array.length - (n == null || guard ? 1 : n)));
+  };
+
+  // 返回 array 中的最后一个元素
+  // 如果传递了 n 参数，则返回由数组中的后面 n 个元素组成的数组
+  _.last = function(array, n, guard) {
+    if (array == null) return void 0;
+    if (n == null || guard) return array[array.length - 1];
+    return _.rest(array, Math.max(0, array.length - n));
+  };
+
+  // 返回 array 中由除了第一个元素外的其他全部元素组成的数组
+  // 如果传递了 n 参数，则返回由从 n 开始的剩余所有元素组成的数组
+  _.rest = _.tail = _.drop = function(array, n, guard) {
+    return slice.call(array, n == null || guard ? 1 : n);
+  };
+
+  // 返回一个除去了所有 false 值的 array 副本
+  _.compact = function(array) {
+    return _.filter(array, _.identity);
+  };
+
+  // 数组扁平化的内部实现
+  // shallow 表示是否只展开一层
+  // strict 表示不保存 || 保存 非数组元素
+  // startIndex 表示从 input 的第几项开始展开
+  let flatten = function(input, shallow, strict, startIndex) {
+    let
+      // 函数返回的结果
+      output = [],
+      // output 的下标
+      idx = 0;
+    for (let i = startIndex || 0, length = getLength(input); i < length; i++) {
+      let value = input[i];
+
+      // 如果 value 是类数组，并且是 Array 或 Arguments类型
+      if (isArrayLike(vale) && (_.isArray(value) || _.isArguments(value))) {
+
+        // 如果不是只展开一层，则继续调用 flatten()
+        if (!shallow) value = flatten(value, shallow, strict);
+
+        // 如果只展开一层，则将 value 数组的元素添加到 output 数组中
+        let j = 0,
+          len = value.length;
+        output.length += len;
+        while (j < len) {
+          output[idx++] = value[j++];
+        }
+      } else if (!strict) {
+        // 如果 value 是基本类型值，则将 value 添加到 output 数组中
+        output[idx++] = value;
+      }
+    }
+    return output;
+  }；
+
+  // 将一个嵌套多层的 array 数组转换为只有一层的数组
+  // 如果传递给 shallow 参数的值为 true，数组将只减少一维的嵌套
+  _.flatten = function(array, shallow) {
+    return flatten(array, shallow, false);
+  };
+
+  // 返回一个删除所有 values 值后的 array 副本
+  _.without = function(array) {
+    // 将 arguments 转换为数组，同时去掉第一个元素
+    return _.difference(array, slice.call(arguments, 1));
+  };
+
+  // 数组去重
+  // 如果确定 array 已经排序, 那么给 isSorted 参数传递 true 值, 此函数将运行更快的算法
+  // 如果要处理对象元素, 则传递 iteratee 函数来获取要对比的属性
+  _.uniq = _.unique = function(array, isSorted, iteratee, context) {
+    // 如果传入的 isSorted 参数不是布尔值，则为参数重新赋值
+    if (!_.isBoolean(isSorted)) {
+      context = iteratee;
+      iteratee = isSorted;
+      isSorted = false;
+    }
+
+    if (iteratee != null) iteratee = cb(iteratee, context);
+
+    // result 是返回的结果，seen 是已经出现过的元素
+    let
+      result = [],
+      seen = [];
+
+    for (let i = 0, length = getLength(array); i < length; i++) {
+      let
+        value = array[i],
+        // computed 为当前需要进行比较的值
+        // 如果指定了 iteratee 函数，则将迭代后的值赋给 computed，否则将 value 值赋给 computed
+        computed = iteratee ? iteratee(value, i, array) : value;
+
+      if (isSorted) {
+        // 对应 array 已经排序了的情况
+        // 如果 value 不是 array 的第一个元素 或者 上一个元素与当前元素不相等，则将 value 添加到 result 数组中
+        if (!i || seen !== computed) result.push(value);
+        seen = computed;
+      } else if (iteratee) {
+        if (!_.contains(seen, computed)) {
+          // 对应 array 没有排序但是传入了 iteratee 函数的情况
+          seen.push(computed);
+          result.push(value);
+        }
+      } else if (!_.contains(result, value)) {
+        // 对应 array 没有排序并且也没有传入 iteratee 函数的情况
+        result.push(value);
+      }
+    }
+    return result;
+  };
+
+  // 
 }.call(this));
