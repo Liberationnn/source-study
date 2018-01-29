@@ -781,10 +781,11 @@
       // 如果 value 是类数组，并且是 Array 或 Arguments类型
       if (isArrayLike(vale) && (_.isArray(value) || _.isArguments(value))) {
 
-        // 如果不是只展开一层，则继续调用 flatten()
+        // 如果 shallow 为 false，则继续调用 flatten()
         if (!shallow) value = flatten(value, shallow, strict);
 
-        // 如果只展开一层，则将 value 数组的元素添加到 output 数组中
+        // 如果 shallow 为 false，则永远不会执行到这里
+        // 如果 shallow 为 true，则将 value 数组的元素添加到 output 数组中
         let j = 0,
           len = value.length;
         output.length += len;
@@ -836,24 +837,55 @@
         // 如果指定了 iteratee 函数，则将迭代后的值赋给 computed，否则将 value 值赋给 computed
         computed = iteratee ? iteratee(value, i, array) : value;
 
+      // 对应 array 已经排序了的情况
       if (isSorted) {
-        // 对应 array 已经排序了的情况
-        // 如果 value 不是 array 的第一个元素 或者 上一个元素与当前元素不相等，则将 value 添加到 result 数组中
+        // 如果 value 是 array 的第一个元素 或者 上一个元素与当前元素不相等，则将 value 添加到 result 数组中
         if (!i || seen !== computed) result.push(value);
         seen = computed;
-      } else if (iteratee) {
+      }
+      // 对应 array 没有排序但是传入了 iteratee 函数的情况
+      else if (iteratee) {
         if (!_.contains(seen, computed)) {
-          // 对应 array 没有排序但是传入了 iteratee 函数的情况
           seen.push(computed);
           result.push(value);
         }
-      } else if (!_.contains(result, value)) {
-        // 对应 array 没有排序并且也没有传入 iteratee 函数的情况
+      }
+      // 对应 array 没有排序并且也没有传入 iteratee 函数的情况
+      else if (!_.contains(result, value)) {
         result.push(value);
       }
     }
     return result;
   };
 
-  //
+  //返回传入的 array 的并集，可传入一个或多个 array
+  _.union = function() {
+    return _.uniq(flatten(arguments, true, true));
+  };
+
+  // 返回传入的 array 的交集
+  _.intersection = function(array) {
+    let
+      result = [],
+      // 获取传入的参数的数量
+      argsLength = arguments.length;
+
+    for (let i = 0, length = array.length; i < length; i++) {
+      let value = array[i];
+
+      // 如果 result 中已经有 value 了，则跳到下一个循环
+      if (_.contains(result, value)) continue;
+
+      for (let j = 1; j < argsLength; j++) {
+        // 如果传入的数组中有不含有 value 的，则跳出当前循环
+        if (!_.contains(arguments[j], value)) break;
+      }
+
+      // 如果执行到这里，则说明传入的数组中都含有该 value 值，则将 value 添加到 result 数组中
+      if (j === argsLength) result.push(value);
+    }
+    return result;
+  };
+
+  // 
 }.call(this));
