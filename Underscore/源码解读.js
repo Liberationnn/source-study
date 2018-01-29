@@ -403,6 +403,7 @@
   _.extendOwn = _.assign = createAssigner(_.keys);
 
   // 返回对象中第一个满足条件的键值对的 key 值
+  // predicate 是条件判断函数
   _.findKey = function(obj, predicate, context) {
     predicate = cb(predicate, context);
     let
@@ -816,6 +817,7 @@
   // 数组去重
   // 如果确定 array 已经排序, 那么给 isSorted 参数传递 true 值, 此函数将运行更快的算法
   // 如果要处理对象元素, 则传递 iteratee 函数来获取要对比的属性
+  // _.uniq(array, [isSorted], [iteratee])
   _.uniq = _.unique = function(array, isSorted, iteratee, context) {
     // 如果传入的 isSorted 参数不是布尔值，则为参数重新赋值
     if (!_.isBoolean(isSorted)) {
@@ -935,6 +937,128 @@
     }
     return result;
   };
+
+  // 利用此函数来生成 _.findIndex() 以及 _.findLastIndex()
+  function createPredicateIndexFinder(dir) {
+    return function(array, predicate, context) {
+      predicate = cb(predicate, context);
+      let length = array.length;
+
+      // 正向查找对应： index = 0; index < length; index++
+      // 逆向查找对应： index = length - 1; index >= 0; index--
+      for (let index = dir > 0 ? 0 : length - 1; index >= 0 && index < length; index += dir) {
+        // 将第一个满足 predicate 条件的元素的索引返回
+        if (predicate(array[index], index, array)) return index;
+      }
+
+      // 如果执行到这里说明没有满足条件的值
+      return -1;
+    };
+  }
+
+  // 正向查找数组中第一个满足条件的元素，并返回索引值，如果没有找到则返回 -1
+  // _.findIndex(array, predicate, [context])
+  _.findIndex = createPredicateIndexFinder(1);
+
+  // 逆向查找数组中第一个满足条件的元素，并返回索引值，如果没有找到则返回 -1
+  // _.findLastIndex(array, predicate, [context])
+  _.findLastIndex = createPredicateIndexFinder(-1);
+
+  // 使用二分查找确定 obj 在 array 中的位置序号，obj 按此序号插入能保持 array 原有的排序
+  _.sortedIndex = function(array, obj, iteratee, context) {
+    // 当 iteratee 为空或者为 String 类型时 cb() 会返回不同方法
+    iteratee = cb(iteratee, context, 1);
+
+    // 将迭代过后的 obj 的值赋给变量 value
+    let value = iteratee(obj);
+    let low = 0;
+    let high = array.length;
+
+    // 二分查找
+    // 通过比较中间值与插入值迭代后的大小来改变查找范围的上下限
+    while (low < high) {
+      let mid = Math.floor((low + high) / 2);
+      if (iteratee(array[mid]) < value) low = mid + 1;
+      else high = mid;
+    }
+    return low;
+  };
+
+  // 利用此函数来生成 _.indexOf() 以及 _.lastIndexOf()
+  function createIndexFinder(dir, predicateFind, sortedIndex) {
+    return function(array, item, idx) {
+      let i = 0;
+      let length = array.length;
+
+      if (typeof idx === 'number') {
+        // 正向查找
+        if (dir > 0) {
+          // i 为查找位置的起点
+          i = idx >= 0 ? idx : Math.max(idx + length, i);
+        }
+        // 逆向查找
+        else {
+          // length 为查找位置的起点
+          length = idx >= 0 ? Math.min(idx + 1, length) : idx + length + 1;
+        }
+      }
+      //如果是排序好的就使用二分法
+      else if (sortedIndex && idx && length) {
+        idx = sortedIndex(array, item);
+        //判断找出的值是否一样，是就返回这个值的索引，否则返回 -1
+        return array[idx] === item ? idx : -1;
+      }
+
+      //对 item 为 NaN 的处理
+      if (item !== item) {
+        idx = predicateFind(slice.call(array, i, length), _.isNaN);
+        return idx >= 0 ? idx + i : -1;
+      }
+
+      // 正向查找对应： idx = i; idx < length; idx++
+      // 逆向查找对应： idx = length - 1; idx >= 0; idx--
+      for (idx = dir > 0 ? i : length - 1; idx >= 0 && idx < length; idx += dir) {
+        //通过遍历的方法找出 item 对应的索引
+        if (array[idx] === item) return idx;
+      }
+
+      //找不到则返回 -1
+      return -1;
+    };
+  }
+
+  // 正向查找 value 在该 array 中第一次出现的位置，并返回索引值，如果 value 不在 array 中就返回 -1
+  // _.indexOf(array, value, [isSorted])
+  _.indexOf = createIndexFinder(1, _.findIndex, _.sortedIndex);
+
+  // 逆向查找 value 在该 array 中第一次出现的位置，并返回索引值，如果 value 不在 array 中就返回 -1
+  // _.lastIndexOf(array, value, [fromIndex])
+  _.lastIndexOf = createIndexFinder(-1, _.findLastIndex);
+
+  // 返回某个范围内的数所组成的数组
+  _.range = function(start, stop, step) {
+    if (stop == null) {
+      stop = start || 0;
+      // start 默认值为 0
+      start = 0;
+    }
+    // step 默认值为 1
+    step = step || 1;
+    let length = Math.max(Math.ceil((stop - start) / step), 0);
+    let range = Array(length);
+    for (let i = 0; i < length; i++, start += step) {
+      range[i] = start;
+    }
+    return range;
+  };
+
+
+
+  // ************************** collection部分源码解读 *************************** //
+  // ************************** collection部分源码解读 *************************** //
+  // ************************** collection部分源码解读 *************************** //
+
+  // COLLECTION FUNCTIONS
 
   // 
 }.call(this));
