@@ -277,8 +277,7 @@
     }
   }
 
-  // 返回对象的 keys 组成的数组
-  // 仅返回 own enumerable properties 组成的数组
+  // 检索 object 拥有的所有可枚举属性的名称
   _.keys = function(obj) {
     // 如果传入的参数不是对象，则返回空数组
     if (!_.isObject(obj)) return [];
@@ -301,8 +300,7 @@
     return keys;
   };
 
-  // 返回对象的所有 keys 组成的数组
-  // 不仅仅是 own enumerable properties 组成的数组，还包括原型链上继承的属性
+  // 检索 object 拥有的和继承的所有属性的名称
   _.allKeys = function(obj) {
     // 如果传入的参数不是对象，则返回空数组
     if (!_.isObject(obj)) return [];
@@ -319,7 +317,7 @@
     return keys;
   };
 
-  // 返回对象所有 own properties 的值
+  // 返回 object 对象所有的属性值
   _.values = function(obj) {
     let
       keys = _.keys(obj),
@@ -331,7 +329,7 @@
     return values;
   };
 
-  // 迭代函数改变对象的 values 值并返回对象副本
+  // 转换每个属性的值并返回对象副本
   _.mapObject = function(obj, iteratee, context) {
     // 通过 cb() 方法生成迭代函数
     iteratee = cb(iteratee, context);
@@ -355,7 +353,7 @@
     return results;
   };
 
-  // 将对象转换为 [key，value] 形式的数组
+  // 把一个对象转变为一个 [key, value] 形式的数组
   _.pairs = function(obj) {
     let
       keys = _.keys(obj),
@@ -367,8 +365,8 @@
     return pairs;
   };
 
-  // 将对象的 key 和 value 值颠倒，即 {key: value} 变为 {value: key}
-  // value 的值必须为可序列化的
+  // 返回一个 object 副本，使其键 (keys) 和值 (values) 对换
+  // 必须确保 object 里所有的值都是唯一的且可以序列号成字符串
   _.invert = function(obj) {
     let
       result = {},
@@ -380,7 +378,7 @@
     return result;
   }
 
-  // 将对象的所有 value 值类型为 function 的 key 值存入一个数组，并将该数组排序后返回
+  // 将对象里所有的方法名存入一个数组，并将该数组排序后返回
   _.functions = _.methods = function(obj) {
     // 返回的数组
     let names = [];
@@ -419,33 +417,35 @@
     }
   };
 
-  // 根据一定需求 (key 值，或者通过 predicate 函数返回真假) 返回一个由满足需求的键值对组成的对象副本
-  // 第二个参数可以是一个 predicate 函数，也可以是 >= 0 个 key
+  // 返回一个 object 副本，只过滤出 keys (有效的键组成的数组) 参数指定的属性值
+  // 或者接受一个判断函数，指定挑选哪个 key
   _.pick = function(object, oiteratee, context) {
     let
-      // result 为返回的对象副本
       result = {},
       obj = object,
       iteratee,
       keys;
+
     if (obj == null) return result;
 
     // 如果第二个参数是函数
     if (_.isFunction(oiteratee)) {
       keys = _.allKeys(obj);
       iteratee = optimizeCb(oiteratee, context);
-    } else {
-      // 如果第二个参数不是函数，则后面的 keys 可能是数组，也可能是连续的几个并列的参数
+    }
+
+    // 如果第二个参数不是函数，则后面的 keys 可能是数组，也可能是连续的几个并列的参数
+    else {
       // 用 flatten 将它们展开
       keys = flatten(arguments, false, false, 1);
 
-      // 也转为 predicate 函数判断形式
-      // 将指定 key 转化为 predicate 函数
+      // 将 iteratee 定义为一个迭代函数
       iteratee = function(value, key, obj) {
         return key in obj;
       };
       obj = Object(obj);
     }
+
     for (let i = 0, length = keys.length; i < length; i++) {
       let
         key = keys[i],
@@ -459,9 +459,8 @@
     return result;
   };
 
-  // 跟 _.pick() 方法相对，返回 _.pick() 方法的补集
-  // 根据一定需求 (key 值，或者通过 predicate 函数返回真假) 返回一个由不满足需求的键值对组成的对象副本
-  // 第二个参数可以是一个 predicate 函数，也可以是 >= 0 个 key
+  // 返回一个 object 副本，只过滤出除去 keys (有效的键组成的数组) 参数指定的属性值
+  // 或者接受一个判断函数，指定忽略哪个 key
   _.omit = function(object, iteratee, context) {
     if (_.isFunction(iteratee)) {
       iteratee = _.negate(iteratee);
@@ -478,8 +477,8 @@
   // 参数个数 >= 1
   _.defaults = createAssigner(_.allKeys, true);
 
-  // 创建一个从给定原型对象继承的对象
-  // 如果提供了附加属性，则将它们的 own properties 键值对添加到创建的对象中
+  // 创建具有给定原型的新对象， 可选附加 props 作为 own 的属性
+  //  基本上，和 Object.create 一样， 但是没有所有的属性描述符
   _.create = function(prototype, props) {
     let result = baseCreate(prototype);
     if (props) {
@@ -488,13 +487,15 @@
     return result;
   };
 
-  // 创建一个对象的浅复制副本，即所有嵌套的对象或者数组都会跟原对象用同一个引用
+  // 创建一个对象的浅复制副本
+  // 任何嵌套的对象或数组都通过引用拷贝，不会复制
   _.clone = function(obj) {
     if (!_.isObject(obj)) return obj;
     return _.isArray(obj) ? obj.slice() : _.extend({}, obj);
   };
 
-  // 主要是用在链式调用中，对中间值立即进行处理
+  // 用 object 作为参数来调用函数 interceptor，然后返回 object
+  // 这种方法的主要意图是作为函数链式调用 的一环, 为了对此对象执行操作并返回对象本身
   _.tap = function(obj, interceptor) {
     interceptor(obj);
     return obj;
@@ -646,7 +647,7 @@
   _.isEmpty = function(obj) {
     if (obj == null) return true;
 
-    // 如果数组、字符串、类数组的 length 属性值为0，则为空对象
+    // 如果数组、字符串、类数组的 length 属性值为 0，则为空对象
     if (_.isArrayLike(obj) && (_.isArray(obj) || _.isString(obj) || _.isArguments(obj))) return obj.length === 0;
 
     // 如果对象的键值对数量为 0，则为空对象
@@ -883,6 +884,54 @@
 
       // 如果执行到这里，则说明传入的数组中都含有该 value 值，则将 value 添加到 result 数组中
       if (j === argsLength) result.push(value);
+    }
+    return result;
+  };
+
+  // 返回一个由只存在于  array 数组中、而不存在于其他数组中的元素组成的数组
+  _.difference = function(array) {
+    // 将从传入的第二个参数开始的所有参数扁平化
+    let rest = flatten(arguments, true, true, 1);
+
+    return _.filter(array, function(value) {
+      // 如果 rest 中包含 value，则过滤掉
+      return !_.contains(rest, value);
+    });
+  };
+
+  // 将多个数组中相同位置的元素合并在一起，并返回一个数组
+  // _.zip(['moe', 'larry', 'curly'], [30, 40, 50], [true, false, false])
+  // => [['moe', 30, true], ['larry', 40, false], ['curly', 50, false]]
+  _.zip = function() {
+    return _.unzip(arguments);
+  };
+
+  // 与zip功能相反的函数
+  // _.unzip([['moe', 'larry', 'curly'], [30, 40, 50], [true, false, false]])
+  // => ['moe', 30, true], ['larry', 40, false], ['curly', 50, false]
+  _.unzip = function(array) {
+    let length = array && _.max(array, getLength).length || 0;
+    let result = Array(length);
+    for (let i = 0; i < length; i++) {
+      result[i] = _.pluck(array, i);
+    }
+    return result;
+  };
+
+  // 将数组转换为对象
+  _.object = function(list, values) {
+    let result = {};
+    for (let i = 0, length = list.length; i < length; i++) {
+      // 如果传入的是一个键的列表和一个值的列表
+      // 形如 ([key1, key2, key3], [value1, value2, value3])
+      if (values) {
+        result[list[i]] = values[i];
+      }
+      // 如果传入的是一个单独 [key, value] 对的列表
+      // 形如 ([[key1, value1], [key2, value2], [key3, value3]])
+      else {
+        result[list[i][0]] = values[i[1]];
+      }
     }
     return result;
   };
