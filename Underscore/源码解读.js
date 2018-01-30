@@ -506,6 +506,7 @@
     let keys = _.keys(attrs);
     let length = keys.length;
 
+    // 如果 object 和 attrs 都是空数组则返回 true
     if (object == null) return !length;
 
     // 将 object 包装为一个对象
@@ -1236,7 +1237,7 @@
 
   // 返回由 obj 数组对象中每一项的 key 属性的值所组成的数组
   // _.pluck(obj, key)
-  // _.pluck([{name: 'moe', age: 40}, {name: 'larry', age: 50}], 'name') => ['moe', 'larry']
+  // _.pluck([{name: 'moe', age: 40}, {name: 'larry', age: 50}, {name: 'curly', age: 60}], 'name') => ["moe", "larry", "curly"]
   _.pluck = function(obj, key) {
     return _.map(obj, _.property(key));
   };
@@ -1247,9 +1248,76 @@
     return _.filter(obj, _.matcher(attrs));
   };
 
-  // 返回 obj 中第一个包含 attrs 里的键值对的项
+  // 寻找 obj 中第一个包含 attrs 里的键值对的项
   // _.findWhere(list, properties)
   _.findWhere = function(obj, attrs) {
-    
+    return _.find(obj, _.matcher(attrs));
+  };
+
+  // 返回 obj 中的最大值
+  // _.max(obj, [iteratee], [context])
+  // _.max([{name: 'moe', age: 40}, {name: 'larry', age: 50}, {name: 'curly', age: 60}], function(stooge){ return stooge.age; }) => {name: 'curly', age: 60}
+  _.max = function(obj, iteratee, context) {
+    let result = -Infinity;
+    let lastComputed = -Infinity;
+    // 如果没有传入 iteratee 并且 obj 不为空
+    if (iteratee == null && obj != null) {
+      // 如果 obj 是对象就获取其键值集合并赋给 obj
+      obj = isArrayLike(obj) ? obj : _.values(obj);
+      let length = obj.length;
+      for (let i = 0; i < length; i++) {
+        let value = obj[i];
+        // result 为两个值中较大的那一个
+        if (value > result) result = value;
+      }
+    }
+    // 如果传入了 iteratee
+    else {
+      iteratee = cb(iteratee, context);
+      _.each(obj, function(value, index, list) {
+        // computed 为当前迭代后的返回值
+        let computed = iteratee(value, index, list);
+        // 将当前迭代后的值与已经迭代过的值中的最大值进行比较
+        if (computed > lastComputed || computed === -Infinity && result === -Infinity) {
+          // result 保存的是迭代后的较大值的原始 value 值
+          result = value;
+          // lastComputed 保存的是迭代后的较大值
+          lastComputed = computed;
+        }
+      })；
+    }
+    return result;
+  };
+
+  // 返回 obj 中的最小值
+  // _.min(obj, [iteratee], [context])
+  // _.min([10, 5, 100, 2, 1000]) => 2
+  _.min = function(obj, iteratee, context) {
+    let result = Infinity;
+    let lastComputed = Infinity;
+    if (iteratee == null && obj != null) {
+      obj = isArrayLike(obj) ? obj : _.values(obj);
+      let length = obj.length;
+      for (let i = 0; i < length; i++) {
+        let value = obj[i];
+        if (value < result) result = value;
+      }
+    }
+    // 如果传入了 iteratee 
+    else {
+      iteratee = cb(iteratee, context);
+      _.each(obj, function(value, index, list) {
+        // computed 为当前迭代后的返回值
+        computed = iteratee(value, index, list);
+        // 将当前迭代后的值与已经迭代过的值中的最小值进行比较
+        if (computed < lastComputed || computed === Infinity && result === Infinity) {
+          // result 保存的是迭代后的较小值的原始 value 值
+          result = value;
+          // lastComputed 保存的是迭代后的较小值
+          lastComputed = computed;
+        }
+      });
+    }
+    return result;
   };
 }.call(this));
