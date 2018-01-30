@@ -495,32 +495,27 @@
   };
 
   // 用 object 作为参数来调用函数 interceptor，然后返回 object
-  // 这种方法的主要意图是作为函数链式调用 的一环, 为了对此对象执行操作并返回对象本身
+  // 这种方法的主要意图是作为函数链式调用的一环, 为了对此对象执行操作并返回对象本身
   _.tap = function(obj, interceptor) {
     interceptor(obj);
     return obj;
   };
 
-  // 判断 object 对象中是否有 attrs 对象中的所有键值对
-  // 返回布尔值
+  // 如果 object 中包含 attrs 里的所有键值对就返回 true， 否则返回 false
   _.isMatch = function(object, attrs) {
-    // 提取 attrs 对象中的所有 keys
-    let
-      keys = _.keys(attrs),
-      length = keys.length;
+    let keys = _.keys(attrs);
+    let length = keys.length;
 
-    // 如果 object 为空
     if (object == null) return !length;
 
     // 将 object 包装为一个对象
     let obj = Object(object);
 
-    // 遍历 attrs 对象的键值对
     for (let i = 0; i < length; i++) {
       let key = keys[i];
 
       // 如果 obj 对象没有 attrs 对象的某个 key，或者对于某个 key，它们的 value 值不同，则证明 object 不拥有 attrs 的所有键值对，返回 false
-      if (attrs[key] !== obj[key] || !(key in obj)) return false;
+      if (!(key in obj) || attrs[key] !== obj[key]) return false;
     }
 
     // 执行到这里说明 object 拥有 attrs 的所有键值对，返回true
@@ -1246,5 +1241,15 @@
     return _.map(obj, _.property(key));
   };
 
-  // 
+  // 返回由 obj 中包含 attrs 里的键值对的项所组成的数组
+  // _.where(obj, attrs)
+  _.where = function(obj, attrs) {
+    return _.filter(obj, _.matcher(attrs));
+  };
+
+  // 返回 obj 中第一个包含 attrs 里的键值对的项
+  // _.findWhere(list, properties)
+  _.findWhere = function(obj, attrs) {
+    
+  };
 }.call(this));
