@@ -203,7 +203,7 @@
     return result;
   };
 
-  // 闭包
+  // 用于生成一个获取元素的 key 属性的函数
   let property = function(key) {
     return function(obj) {
       return obj == null ? void 0 : obj[key];
@@ -317,7 +317,7 @@
     return keys;
   };
 
-  // 返回 object 对象所有的属性值
+  // 返回由 obj 对象所有的属性值所组成的数组
   _.values = function(obj) {
     let
       keys = _.keys(obj),
@@ -402,8 +402,7 @@
   // 由于 key 值可能会相同，所以后面的对象的键值对可能会覆盖前面的同名键值对
   _.extendOwn = _.assign = createAssigner(_.keys);
 
-  // 返回对象中第一个满足条件的键值对的 key 值
-  // predicate 是条件判断函数
+  // 返回对象中第一个满足条件的键值对的键名
   _.findKey = function(obj, predicate, context) {
     predicate = cb(predicate, context);
     let
@@ -1059,6 +1058,193 @@
   // ************************** collection部分源码解读 *************************** //
 
   // COLLECTION FUNCTIONS
+
+  // 按顺序对 obj 中每个元素调用 iteratee 函数，返回 obj 以便链式调用
+  // _.each(obj, iteratee, [context])
+  _.each = function(obj, iteratee, context) {
+    iteratee = cb(iteratee, context);
+    // 如果 obj 是对象，就获取它的键名集合
+    let keys = !isArrayLike(obj) && _.keys(obj);
+    // obj 是对象：获取键名集合的长度
+    // obj 是类数组：获取数组的长度
+    let length = (keys || obj).length;
+    for (let i = 0; i < length; i++) {
+      // obj 是对象：获取当前遍历的键名
+      // obj 是类数组：获取当前遍历的索引
+      let currentKey = keys ? keys[i] : i;
+      iteratee(obj[currentKey], currentKey, obj);
+    }
+    return obj;
+  };
+
+  // 在 obj 的每一项上调用 iteratee 函数，返回由调用后的值所组成的数组
+  // _.map(obj, iteratee, [context])
+  _.map = function(obj, iteratee, context) {
+    iteratee = cb(iteratee, context);
+    // 如果 obj 是对象，就获取它的键名集合
+    let keys = !isArrayLike(obj) && _.keys(obj);
+    // obj 是对象：获取键名集合的长度
+    // obj 是类数组：获取数组的长度
+    let length = (keys || obj).length;
+    let result = [];
+    for (let i = 0; i < length; i++) {
+      // obj 是对象：获取当前遍历的键名
+      // obj 是类数组：获取当前遍历的索引
+      let currentKey = keys ? keys[i] : i;
+      // 对当前遍历元素进行迭代，并将迭代后的值添加到 result 数组中
+      result[i] = iteratee(obj[currentKey], currentKey, obj);
+    }
+    return result;
+  };
+
+  // 利用此函数来生成 _.reduce() 以及 _.reduceRight()
+  function createReduce(dir) {
+    function iterator(obj, iteratee, memo, keys, index, length) {
+      // reduce： ; index < length; index++
+      // reduceRight： ; index >= 0; index--
+      for (; index >= 0 && index < length; index += dir) {
+        // obj 是对象：获取当前遍历元素的键名
+        // obj 是类数组：获取当前遍历元素的索引
+        let currentKey = keys ? keys[i] : index;
+        // 将每一次迭代后的值重新赋值给 memo，供下次迭代调用
+        memo = iteratee(memo, obj[currentKey], currentKey, obj);
+      }
+      return memo;
+    }
+
+    return function(obj, iteratee, memo, context) {
+      iteratee = cb(iteratee, context, 4);
+      // 如果 obj 是对象，就获取它的键名集合
+      let keys = !isArrayLike(obj) && _.keys(obj);
+      // obj 是对象：获取键名集合的长度
+      // obj 是类数组：获取数组的长度
+      let length = (keys || obj).length;
+      // reduce：遍历的起点为第一个元素
+      // reduceRight：遍历的起点为最后一个元素
+      let index = dir > 0 ? 0 : length - 1;
+
+      // 如果没有传入 memo 参数
+      if (arguments.length < 3) {
+        // memo 是函数的初始值，默认值为 obj 遍历起点的值
+        memo = obj[keys ? keys[index] : index];
+        // reduce：遍历的起点为第二个元素
+        // reduceRight：遍历的起点为倒数第二个元素
+        index += dir;
+      }
+      return iterator(obj, iteratee, memo, keys, index, length);
+    };
+  }
+
+  // 将 obj 的每个值从左到右减少为一个单个值
+  // _.reduce(obj, iteratee, [memo], [context])
+  // _.reduce([1, 2, 3], function(memo, num){ return memo + num; }, 0) => 6
+  _.reduce = _.foldl = _.inject = createReduce(1);
+
+  // 将 obj 的每个值从右到左减少为一个单个值
+  // _.reduceRight(obj, iteratee, memo, [context])
+  // _.reduceRight([[0, 1], [2, 3], [4, 5]], function(a, b) { return a.concat(b); }, []) => [4, 5, 2, 3, 0, 1]
+  _.reduceRight = _.foldr = createReduce(-1);
+
+  // 返回 obj 中第一个通过 predicate 函数真值检测的元素值
+  // _.find(obj, predicate, [context])
+  //  _.find([1, 2, 3, 4, 5, 6], function(num){ return num % 2 == 0; }) => 2
+  _.find = function(obj, predicate, context) {
+    let key;
+    // obj 为类数组：查找通过 predicate 函数真值检测的元素的索引
+    // obj 为对象：查找通过 predicate 函数真值检测的元素的键名
+    if (isArrayLike(obj)) {
+      key = _.findIndex(obj, predicate, context);
+    } else {
+      key = _.findKey(obj, predicate, context);
+    }
+
+    // _.findKey() 未找到匹配元素的话会返回 undefined
+    // _.findIndex() 未找到匹配元素的话会返回 -1
+    if (key !== void 0 && key !== -1) return obj[key];
+  };
+
+  // 返回由 obj 中所有通过 predicate 函数真值检测的元素值所组成的数组
+  // _.filter(obj, predicate, [context])
+  // _.filter([1, 2, 3, 4, 5, 6], function(num){ return num % 2 == 0; }) => [2, 4, 6]
+  _.filter = function(obj, predicate, context) {
+    let result = [];
+    predicate = cb(predicate, context);
+    _.each(obj, function(value, index, list) {
+      if (predicate(value, index, list)) result.push(value);
+    });
+    return result;
+  };
+
+  // 返回由 obj 中所有没通过 predicate 函数真值检测的元素值所组成的数组
+  // _.reject(obj, predicate, [context])
+  // _.reject([1, 2, 3, 4, 5, 6], function(num){ return num % 2 == 0; }) => [1, 3, 5]
+  _.reject = function(obj.predicate, context) {
+    return _.filter(obj, _.negate(cb(predicate)), context);
+  };
+
+  // 如果 obj 中的所有元素都通过 predicate 函数真值检测就返回 true，否则返回 false
+  // _.every(obj, [predicate], [context])
+  // _.every([true, 1, null, 'yes'], _.identity) => false
+  _.every = function(obj, predicate, context) {
+    predicate = cb(predicate, context);
+    let keys = !isArrayLike(obj) && _.keys(obj);
+    let length = (keys || obj).length;
+    for (let index = 0; index < length; index++) {
+      let currentKey = keys ? keys[index] : index;
+      if (!predicate(obj[currentKey], currentKey, obj)) return false;
+    }
+    return true;
+  };
+
+  // 只要 obj 中有元素通过 predicate 函数真值检测就返回 true，否则返回 false
+  // _.some(obj, [predicate], [context])
+  // _.some([null, 0, 'yes', false]) => true
+  _.some = function(obj, predicate, context) {
+    predicate = cb(predicate, context);
+    let keys = !isArrayLike(obj) && _.keys(obj);
+    let length = (keys || obj).length;
+    for (let index = 0; index < length; index++) {
+      let currentKey = keys ? keys[index] : index;
+      if (predicate(obj[currentKey], currentKey, obj)) return true;
+    }
+    return false;
+  };
+
+  // 如果 obj 中包含 item， 则返回 true
+  // _.contains(obj, value, [fromIndex])
+  // _.contains([1, 2, 3], 3) => true
+  _.contains = _.includes = _.include = function(obj, item, fromIndex, guard) {
+    // 如果 obj 不是类数组，就获取 obj 的键值集合，并赋给 obj，这样 obj 就是数组了
+    if (!isArrayLike(obj)) obj = _.values(obj);
+    //如果 fromIndex 的类型不是 number，则 formIndex 默认值为 0
+    if (typeof fromIndex != 'number' || guard) formIndex = 0;
+    // 如果 obj 中包含 item，则 _indexOf() 的返回值 >= 0，即返回 true
+    return _.indexOf(obj, item, fromIndex) >= 0;
+  };
+
+  // 在 obj 的每一项上调用 method 方法，返回调用后的结果
+  // _.invoke(obj, method, *arguments)
+  // _.invoke([[5, 1, 7], [3, 2, 1]], 'sort') => [[1, 5, 7], [1, 2, 3]]
+  _.invoke = function(obj, method) {
+    // 获取传入的额外参数
+    let args = slice.call(arguments, 2);
+    let isFunc = _.isFunction(method);
+    return _.map(obj, function(value) {
+      // 如果 method 是函数则直接赋给 func
+      // 如果 method 不是函数则将当前遍历元素的 method 属性赋给 func
+      let func = isFunc ? method : value[method];
+      // 如果当前遍历元素没有 method 属性，则返回 func
+      // 如果当前遍历元素有 method 属性，则对其调用 func() 方法，并将 args 作为 func() 的附加参数
+      return func == null ? func : func.apply(value, args);
+    });
+  };
+
+  // 返回由 obj 数组对象中每一项的 key 属性的值所组成的数组
+  // _.pluck(obj, key)
+  // _.pluck([{name: 'moe', age: 40}, {name: 'larry', age: 50}], 'name') => ['moe', 'larry']
+  _.pluck = function(obj, key) {
+    return _.map(obj, _.property(key));
+  };
 
   // 
 }.call(this));
