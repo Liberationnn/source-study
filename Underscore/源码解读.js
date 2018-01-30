@@ -1295,15 +1295,18 @@
   _.min = function(obj, iteratee, context) {
     let result = Infinity;
     let lastComputed = Infinity;
+    // 如果没有传入 iteratee 并且 obj 不为空
     if (iteratee == null && obj != null) {
+      // 如果 obj 是对象就获取其键值集合并赋给 obj
       obj = isArrayLike(obj) ? obj : _.values(obj);
       let length = obj.length;
       for (let i = 0; i < length; i++) {
         let value = obj[i];
+        // result 为两个值中较小的那一个
         if (value < result) result = value;
       }
     }
-    // 如果传入了 iteratee 
+    // 如果传入了 iteratee
     else {
       iteratee = cb(iteratee, context);
       _.each(obj, function(value, index, list) {
