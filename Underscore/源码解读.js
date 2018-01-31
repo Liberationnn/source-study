@@ -731,30 +731,30 @@
 
   // 返回 array 的第一个元素
   // 如果传递了 n 参数，则返回由数组中的前 n 个元素组成的数组
-  _.first = _.head = _.take = function(array, n, guard) {
+  _.first = _.head = _.take = function(array, n) {
     if (array == null) return void 0;
-    if (n == null || guard) return array[0];
+    if (n == null) return array[0];
     return _.initial(array, array.length - n);
   };
 
   // 返回 array 中除了最后一个元素外的其他全部元素组成的数组
   // 如果传递了 n 参数，则返回由排除了数组后面的 n 个元素后的其他全部元素组成的数组
-  _.initial = function(array, n, guard) {
-    return slice.call(array, 0, Math.max(0, array.length - (n == null || guard ? 1 : n)));
+  _.initial = function(array, n) {
+    return slice.call(array, 0, Math.max(0, array.length - (n == null ? 1 : n)));
   };
 
   // 返回 array 中的最后一个元素
   // 如果传递了 n 参数，则返回由数组中的后面 n 个元素组成的数组
-  _.last = function(array, n, guard) {
+  _.last = function(array, n) {
     if (array == null) return void 0;
-    if (n == null || guard) return array[array.length - 1];
+    if (n == null) return array[array.length - 1];
     return _.rest(array, Math.max(0, array.length - n));
   };
 
   // 返回 array 中由除了第一个元素外的其他全部元素组成的数组
   // 如果传递了 n 参数，则返回由从 n 开始的剩余所有元素组成的数组
-  _.rest = _.tail = _.drop = function(array, n, guard) {
-    return slice.call(array, n == null || guard ? 1 : n);
+  _.rest = _.tail = _.drop = function(array, n) {
+    return slice.call(array, n == null ? 1 : n);
   };
 
   // 返回一个除去了所有 false 值的 array 副本
@@ -1209,11 +1209,11 @@
   // 如果 obj 中包含 item， 则返回 true
   // _.contains(obj, value, [fromIndex])
   // _.contains([1, 2, 3], 3) => true
-  _.contains = _.includes = _.include = function(obj, item, fromIndex, guard) {
+  _.contains = _.includes = _.include = function(obj, item, fromIndex) {
     // 如果 obj 不是类数组，就获取 obj 的键值集合，并赋给 obj，这样 obj 就是数组了
     if (!isArrayLike(obj)) obj = _.values(obj);
     //如果 fromIndex 的类型不是 number，则 formIndex 默认值为 0
-    if (typeof fromIndex != 'number' || guard) formIndex = 0;
+    if (typeof fromIndex != 'number') formIndex = 0;
     // 如果 obj 中包含 item，则 _indexOf() 的返回值 >= 0，即返回 true
     return _.indexOf(obj, item, fromIndex) >= 0;
   };
@@ -1322,5 +1322,198 @@
       });
     }
     return result;
+  };
+
+  // 返回一个随机乱序的 obj 副本, 使用 Fisher-Yates shuffle 来进行随机乱序
+  // _.shuffle(obj)
+  // _.shuffle([1, 2, 3, 4, 5, 6]) => [4, 1, 6, 3, 5, 2]
+  _.shuffle = function(obj) {
+    // obj 是类数组：直接将 obj 赋给 set
+    // obj 是对象：获取 obj 的键值集合，并赋给 set
+    let set = isArrayLike(obj) ? obj : _.values(obj);
+    let length = set.length;
+    let shuffled = [];
+    for (let index = 0; index < length; index++) {
+      // 获取一个随机的索引值
+      let rand = _.random(0, index);
+      if (rand !== index) shuffled[index] = shuffled[rand];
+      shuffled[rand] = set[index];
+    }
+    return shuffled;
+  };
+
+  // 从 obj 中产生一个随机样本
+  // 如果传递了参数 n ，则从 obj 中返回 n 个随机元素
+  // _.sample(obj, [n])
+  // _.sample([1, 2, 3, 4, 5, 6], 3) => [1, 6, 2]
+  _.sample = function(obj, n) {
+    if (n == null) {
+      if (!isArrayLike(obj)) obj = _.values(obj);
+      // 随机返回 obj 中的一个值
+      return obj[_.random(obj.length - 1)];
+    }
+    // 如果传入的参数 n > 0，则先将 obj 乱序，然后返回由前 n 个值所组成的数组 (n 向下取整)
+    // 如果传入的参数 n <= 0，则返回一个空数组
+    return _.shuffled(obj).slice(0, Math.max(0, n));
+  };
+
+  // 返回一个排序后的 obj 拷贝副本
+  // 如果传入了 iteratee 参数，iteratee 将作为 obj 中每个值的排序依据。iteratee 也可以是属性名称的字符串
+  // _.sortBy(obj, iteratee, [context])
+  _.sortBy(obj, iteratee, context) {
+    // iteratee 是函数：则该函数为迭代函数
+    // iteratee 是属性名：则该函数用于获取对象的 iteratee属性
+    iteratee = cb(iteratee, context);
+    return _.pluck(_.map(obj, function(value, index, list) {
+      return {
+        value: value,
+        index: index,
+        // iteratee 是函数：将迭代后的值赋给 criteria
+        // iteratee 是属性名：将对象的 iteratee 属性的值赋给 criteria
+        criteria: iteratee(value, index, list)
+      };
+    }).sort(function(left, right) {
+      let a = left.criteria;
+      let b = right.criteria;
+      if (a !== b) {
+        if (a > b || a === void 0) return 1;
+        if (a < b || b === void 0) return -1;
+      }
+      // 如果迭代后的值相等，则按它们的索引值进行排序
+      return left.index - right.index;
+    }), 'value');
+  };
+
+  // 利用此函数来生成 _.groupBy() 和 _.indexBy()
+  let group = function(behavior) {
+    return function(obj, iteratee, context) {
+      iteratee = cb(iteratee, context);
+      let result = {};
+      _.each(obj, function(value, index) {
+        let key = iteratee(value, index, obj);
+        behavior(result, value, key);
+      });
+      return result;
+    };
+  };
+
+  //把一个集合分组为多个集合，通过 iteratee 返回的结果进行分组
+  // 如果 iteratee 是一个字符串而不是函数, 那么将使用 iteratee 作为各元素的属性名来对比进行分组
+  // _.groupBy(obj, iteratee, [context])
+  // _.groupBy(['one', 'two', 'three'], 'length') => {3: ["one", "two"], 5: ["three"]}
+  _.groupBy = group(function(result, value, key) {
+    if (_.has(result, key)) result[key].push(value);
+    else result[key] = [value];
+  });
+
+  // 给定一个 obj，和一个用来返回一个在列表中的每个元素键的 iteratee 函数 (或属性名)，返回一个每一项索引的对象
+  // _.indexBy(obj, iteratee, [context])
+  _.indexBy = group(function(result, value, key) {
+    result[key] = value;
+  });
+
+  // 排排序一个列表组成多个组，并且返回各组中的对象的数量的计数
+  // _.countBy(list, iteratee, [context])
+  _.countBy = group(function(result, value, key) {
+    if (_.has(result, key)) result[key]++;
+    else result[key] = 1;
+  });
+
+  // 将 obj 转换成一个数组
+  // _.toArray(obj)
+  _.toArray = function(obj) {
+    if (!obj) return [];
+    if (_.isArray(obj)) return slice.call(obj);
+    if (isArrayLike(obj)) return _.map(obj, _.identity);
+    return _.values(obj);
+  };
+
+  // 返回 obj 的长度
+  // _.size(obj)
+  _.size = function(obj) {
+    if (obj == null) return 0;
+    return isArrayLike(obj) ? obj.length : _.keys(obj).length;
+  };
+
+  // 将一个数组（array）拆分为两个数组：
+  // 一个数组中的元素都满足 predicate 函数真值检测，另一个数组中的所有元素均不满足 predicate 函数真值检测
+  // _.partition(obj, predicate, context)
+  // _.partition([0, 1, 2, 3, 4, 5], isOdd) => [[1, 3, 5], [0, 2, 4]]
+  _.partition = function(obj, predicate, context) {
+    predicate = cb(predicate, context);
+    let pass = [];
+    let fail = [];
+    _.each(obj, function(value, key, obj) {
+      (predicate(value, key, obj) ? pass : fail).push(value);
+    });
+    return [pass, fail];
+  };
+
+
+
+  // **************************** function部分源码解读 **************************** //
+  // **************************** function部分源码解读 **************************** //
+  // **************************** function部分源码解读 **************************** //
+
+  // FUNCTION (AHEM) FUNCTIONS
+
+  // 利用此函数来生成 _.bind() 以及 _.particl()
+  let executeBound = function(sourceFunc, boundFunc, context, callingContext, args) {
+    // 如果不是 new 调用的，则将 sourceFunc 的 this 绑定到 context 上
+    if (!(callingContext instanceof boundFunc)) return sourceFunc.apply(context, args);
+
+    // 如果是 new 调用的
+    // self 是 sourceFunc 的一个实例，继承了它的原型链
+    let self = baseCreate(sourceFunc.prototype);
+
+    // 用 new 生成一个构造函数的实例在正常情况下是没有返回值的
+    // result 为构造函数的返回值
+    let result = sourceFunc.apply(self, args);
+
+    // 如果构造函数有返回值，且返回值是不为 null 的对象，则 new 会返回这个对象
+    if (_.isObject(result)) return result;
+
+    // 否则就返回构造函数的实例
+    return self;
+  };
+
+  // ES5 bind 方法的扩展 (polyfill)
+  // _.bind(func, context, *arguments)
+  _.bind = function(func, context) {
+    // 如果浏览器支持 ES5 的 bind 方法，且 func 上的 bind 方法没有被重写，则使用原生 bind 方法
+    if (nativeBind && func.bind === nativeBind) return nvtiveBind.apply(func, slice.call(arguments, 1));
+
+    // 如果 func 不是函数就报错
+    if (!_.isFunction(func)) throw new TypeError('Bind must be called on a function');
+
+    // 获取优先使用的参数
+    let args = slice.call(arguments, 2);
+    let bound = function() {
+      // 最终函数的实际调用参数由传入 _.bind 的参数和传入 bound (_.bind 所返回方法) 的参数组成
+      return executeBound(func, bound, context, this, args.concat(slice.call(arguments)));
+    };
+    return bound;
+  };
+
+  // 局部应用一个函数填充任意个数的 arguments，不改变其动态 this 值
+  // _.partial(func, *arguments)
+  _.partial = function(func) {
+    // 获取传入的额外参数
+    let boundArgs = slice.call(arguments, 1);
+    let bound = function() {
+      let position = 0;
+      let length = boundArgs.length;
+      let args = [];
+      for (let i = 0; i < length; i++) {
+        // 当前遍历的参数为 _：则用 bound 函数的参数填充这个位置
+        // 当前遍历的参数不为 _：则用 _.partial 函数的参数填充这个位置
+        args[i] = boundArgs[i] === _ ? arguments[position++] : boundArgs[i];
+      }
+
+      // 将 bound 函数中还没有添加的 arguments 添加到 args 数组中
+      while (position < arguments.length) args.push(arguments[position++]);
+      return executeBound(func, bound, this, this, args);
+    };
+    return bound;
   };
 }.call(this));
